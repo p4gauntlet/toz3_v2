@@ -1,0 +1,29 @@
+name: test
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Gauntlet
+      run: |
+        git clone https://github.com/p4gauntlet/gauntlet $GITHUB_WORKSPACE/../gauntlet
+        cd $GITHUB_WORKSPACE/../gauntlet
+        ./do_install.sh RUN_CI=ON
+    - name: Refresh Pruner
+      run: |
+        rm -rf $GITHUB_WORKSPACE/../gauntlet/modules/pruner
+        mkdir $GITHUB_WORKSPACE/../gauntlet/modules/pruner
+        mv $GITHUB_WORKSPACE/* $GITHUB_WORKSPACE/../gauntlet/modules/pruner
+        ln -sf $GITHUB_WORKSPACE/../gauntlet/modules/pruner $GITHUB_WORKSPACE/../gauntlet/modules/p4c/extensions/pruner
+        cd $GITHUB_WORKSPACE/../gauntlet/modules/p4c/build
+        cmake ..
+        make
+    - name: Test with pytest
+      run: |
+        cd $GITHUB_WORKSPACE/../gauntlet/modules/pruner
+        python3 -m pytest test_pruner.py  -vrf
